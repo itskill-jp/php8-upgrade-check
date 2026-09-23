@@ -119,7 +119,7 @@ bash php8-scan.sh /path/to/site
 
 ## 困ったら
 
-このチェックリストは、実際の更新作業で使っている手順を一般化したものです。自分で進めるのが難しい場合は、[IT.Skill](https://it-skill.jp/?utm_source=github&utm_medium=referral&utm_campaign=php8-upgrade-check) にご相談ください。
+このチェックリストは、実際の更新作業で使っている手順を一般化したものです。自分で進めるのが難しい場合は、[WordPress・PHP の更新（1 サイト定額・IT.Skill）](https://it-skill.jp/php-update/?utm_source=github&utm_medium=referral&utm_campaign=php8-upgrade-check) で代わりに行います。
 
 ## ライセンス
 
