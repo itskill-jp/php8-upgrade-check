@@ -4,6 +4,8 @@ PHP 7.x で動いているサイトを 8.x へ上げる前に、**確かめる�
 
 レンタルサーバーの WordPress や、自作の PHP のサイトを想定しています。
 
+![PHP 8.x へ上げる前に、壊れやすい 10 か所](docs/php8-card.png)
+
 ## なぜ今か
 
 PHP 7.4・8.0・8.1 は、すでにサポートが終わっています。8.2 のセキュリティ修正も **2026 年 12 月 31 日まで**です。上げるなら 8.3 以上が目安です（出典：[php.net Supported Versions](https://www.php.net/supported-versions.php)）。
