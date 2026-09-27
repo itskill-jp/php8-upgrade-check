@@ -18,5 +18,11 @@ fi
 wp=$(bash php8-scan.sh tests/fixtures/wp)
 printf '%s\n' "$wp" | grep -q "old-form .*Requires PHP: 5.6" || { echo "NG: WordPress のプラグイン一覧"; fail=1; }
 printf '%s\n' "$wp" | grep -q "wp_version = '6.8.2'" || { echo "NG: WordPress の版"; fail=1; }
+# 出力の言語：LANG が ja なら日本語、それ以外は英語。--lang で上書き
+LANG=ja_JP.UTF-8 bash php8-scan.sh tests/fixtures/should-hit | grep -q '^## \[8.0で停止のおそれ\] each()' || { echo "NG: LANG=ja で日本語にならない"; fail=1; }
+LANG=en_US.UTF-8 bash php8-scan.sh tests/fixtures/should-hit | grep -q '^## \[may stop on 8.0\] each()' || { echo "NG: LANG=en で英語にならない"; fail=1; }
+LANG=C LC_ALL= bash php8-scan.sh tests/fixtures/should-hit | grep -q '^Total ' || { echo "NG: LANG=C で英語にならない"; fail=1; }
+LANG=en_US.UTF-8 bash php8-scan.sh --lang ja tests/fixtures/should-hit | grep -q '^合計 ' || { echo "NG: --lang ja"; fail=1; }
+LANG=ja_JP.UTF-8 bash php8-scan.sh tests/fixtures/should-hit --lang=en | grep -q '^Total ' || { echo "NG: --lang=en"; fail=1; }
 [ "$fail" -eq 0 ] && echo "OK: すべての確認を通過"
 exit "$fail"

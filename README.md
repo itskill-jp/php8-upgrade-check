@@ -1,126 +1,127 @@
 # php8-upgrade-check
 
-PHP 7.x で動いているサイトを 8.x へ上げる前に、**確かめること（チェックリスト）** と、**壊れそうな箇所を探すスクリプト（読み取りのみ）** です。
+[日本語](README.ja.md)
 
-レンタルサーバーの WordPress や、自作の PHP のサイトを想定しています。
+A **checklist** and a **read-only scan script** for moving a site from PHP 7.x to 8.x.
 
-![PHP 8.x へ上げる前に、壊れやすい 10 か所](docs/php8-card.png)
+Written for WordPress on shared hosting and for hand-written PHP sites.
 
-## なぜ今か
+## Why now
 
-PHP 7.4・8.0・8.1 は、すでにサポートが終わっています。8.2 のセキュリティ修正も **2026 年 12 月 31 日まで**です。上げるなら 8.3 以上が目安です（出典：[php.net Supported Versions](https://www.php.net/supported-versions.php)）。
+PHP 7.4, 8.0 and 8.1 no longer get security fixes. PHP 8.2 gets them **until 31 December 2026**. If you are upgrading, aim for 8.3 or later (source: [php.net Supported Versions](https://www.php.net/supported-versions.php)).
 
-| 版 | セキュリティ修正の期限 |
+| Version | Security fixes until |
 |---|---|
-| 7.4 / 8.0 / 8.1 | 終了 |
+| 7.4 / 8.0 / 8.1 | Ended |
 | 8.2 | 2026-12-31 |
 | 8.3 | 2027-12-31 |
 | 8.4 | 2028-12-31 |
 | 8.5 | 2029-12-31 |
 
-## スクリプトの使い方
+## Using the script
 
 ```bash
 bash php8-scan.sh /path/to/site
 ```
 
-- **ファイルを書き換えません。消しません。ネットワークに出ません。** `grep` と `find` だけを使います
-- `vendor/` は既定で除外します（含めるときは `--include-vendor`）
-- WordPress なら、本体の版と、各プラグインの `Requires PHP` / `Tested up to` / `Stable tag` を一覧にします
-- 「8.0で停止のおそれ」が 1 件でもあれば、終了コード 1 を返します（CI に組み込めます）
+- **It never writes, deletes or goes online.** It uses `grep` and `find` only
+- `vendor/` is skipped by default (`--include-vendor` to scan it)
+- On WordPress it lists the core version and each plugin's `Requires PHP` / `Tested up to` / `Stable tag`
+- Exits 1 if anything "may stop on 8.0" (usable in CI)
+- Output is English, or Japanese when `LANG` starts with `ja`. Force either with `--lang en` / `--lang ja`
 
-出力の例：
+Example output:
 
 ```
-## [8.0で停止のおそれ] each()（8.0 で削除）（1 件）
+## [may stop on 8.0] each() (removed in 8.0) (1)
   wp-content/plugins/old-form/inc/util.php:42:while (list($k, $v) = each($arr)) {
 
-## [非推奨] utf8_encode() / utf8_decode()（8.2 で非推奨）（2 件）
+## [deprecated] utf8_encode() / utf8_decode() (deprecated in 8.2) (2)
   ...
 
-合計 3 件（うち PHP 8.0 で停止のおそれ 1 件）
+Total 3 (1 may stop PHP 8.0)
 ```
 
-見つかったものは「要確認」です。`function_exists()` や PHP のバージョン判定で囲まれていれば、そのままで動きます。本当に壊れるかは、検証環境で動かして確かめてください。
+Every hit means "check this". Code wrapped in `function_exists()` or a PHP version check keeps working as it is. Whether it really breaks is confirmed by running the site on the new version in staging.
 
-## チェックリスト
+## Checklist
 
-### 1. 環境
+### 1. Environment
 
-- [ ] 今の PHP の版と、上げる先の版を決めた（8.3 以上）
-- [ ] 使っている拡張モジュールが、上げる先の版にもある（mysqli / PDO、mbstring、gd、curl、intl、zip、opcache など）
-- [ ] PHP の版を切り替える単位を確かめた（ドメインごとか、サーバー全体か）。**同じ設定を共有しているサイトがあると、一緒に切り替わる**
-- [ ] `.htaccess`・`php.ini`・`.user.ini` の設定が、上げる先の版でも有効か確かめた
-- [ ] cron で動いている処理と、メールを送る経路を洗い出した
-- [ ] エラーログの出力先と、**今すでに出ているエラー**を確かめた（上げる前の状態を残しておく）
+- [ ] Decided the current and target PHP versions (8.3 or later)
+- [ ] Every extension in use exists on the target version (mysqli / PDO, mbstring, gd, curl, intl, zip, opcache, ...)
+- [ ] Checked what a PHP version switch applies to (one domain, or the whole account). **Sites sharing the same setting switch together**
+- [ ] Checked that settings in `.htaccess`, `php.ini` and `.user.ini` still apply on the target version
+- [ ] Listed cron jobs and the way the site sends mail
+- [ ] Found where the error log goes and **what errors already appear there** (keep a record of the state before the upgrade)
 
-### 2. コード（`php8-scan.sh` が探すもの）
+### 2. Code (what `php8-scan.sh` looks for)
 
-8.0 で削除され、その行が実行された時点で止まるもの：
+Removed in 8.0 — execution stops when the line runs:
 
-- [ ] `each()`・`create_function()`・`money_format()`・`__autoload()`
-- [ ] `get_magic_quotes_gpc()` / `get_magic_quotes_runtime()`、`fgetss()` など
-- [ ] 文字列の `{}` での添字（`$str{0}` → `$str[0]`）
-- [ ] `(real)` / `(unset)` キャスト
-- [ ] 第 2 引数のない `parse_str()`
-- [ ] `mysql_*`・`ereg*`・`split()`（7.0 で削除済み。残っていれば今も動いていない）
+- [ ] `each()`, `create_function()`, `money_format()`, `__autoload()`
+- [ ] `get_magic_quotes_gpc()` / `get_magic_quotes_runtime()`, `fgetss()` and others
+- [ ] Curly-brace string offsets (`$str{0}` → `$str[0]`)
+- [ ] `(real)` / `(unset)` casts
+- [ ] `parse_str()` without a second argument
+- [ ] `mysql_*`, `ereg*`, `split()` (removed in 7.0 — if they are still there, that code is already broken)
 
-動きが変わるもの：
+Behaviour changes:
 
-- [ ] `is_resource()` の判定（curl・GD・XML・OpenSSL などは 8.0 からオブジェクト。ファイルのハンドルは今もリソース）
-- [ ] `define()` の第 3 引数 `true`（8.0 から無視される。定義と違う大文字小文字で参照していると止まる）
-- [ ] 文字列を渡した `assert()`（8.0 から評価されず、確認が素通りになる）
+- [ ] `is_resource()` checks (curl, GD, XML, OpenSSL etc. return objects since 8.0; file handles are still resources)
+- [ ] `define()` with `true` as the third argument (ignored since 8.0; referencing the constant in a different case stops execution)
+- [ ] `assert()` with a string (no longer evaluated since 8.0, so the check silently passes)
 
-非推奨（動くが、エラーログが埋まり、次の版で止まる）：
+Deprecated (still runs, fills the error log, stops in a later version):
 
-- [ ] `FILTER_SANITIZE_STRING`、`strftime()`（8.1）
-- [ ] `utf8_encode()` / `utf8_decode()`、文字列中の `${変数}`（8.2）
-- [ ] 型付き引数の `= null`（暗黙の null 許容。8.4）
+- [ ] `FILTER_SANITIZE_STRING`, `strftime()` (8.1)
+- [ ] `utf8_encode()` / `utf8_decode()`, `${var}` inside strings (8.2)
+- [ ] Typed parameters with `= null` (implicit nullable, 8.4)
 
-### 3. コード（スクリプトでは見つけられないもの）
+### 3. Code (what a script cannot find)
 
-静的な検索では拾えません。**検証環境で動かし、エラーログで確かめます。**
+A text search cannot catch these. **Run the site in staging and read the error log.**
 
-- [ ] 数値と文字列の比較の変化（8.0 から `0 == "abc"` は `false`）
-- [ ] 内部関数の型の厳格化（`count()` に配列以外を渡すと 8.0 から TypeError）
-- [ ] 内部関数に `null` を渡している箇所（8.1 から非推奨。`strlen(null)` など）
-- [ ] 宣言していないプロパティへの代入（動的プロパティ。8.2 から非推奨）
-- [ ] 未定義の変数・配列のキーの参照（8.0 から Warning に格上げ）
-- [ ] 括弧のない入れ子の三項演算子（8.0 から構文エラー）
+- [ ] Number-to-string comparison changes (`0 == "abc"` is `false` since 8.0)
+- [ ] Stricter built-in functions (`count()` on a non-array throws TypeError since 8.0)
+- [ ] `null` passed to built-in functions (deprecated since 8.1, e.g. `strlen(null)`)
+- [ ] Assigning undeclared properties (dynamic properties, deprecated since 8.2)
+- [ ] Reading undefined variables or array keys (promoted to Warning in 8.0)
+- [ ] Nested ternaries without parentheses (syntax error since 8.0)
 
 ### 4. WordPress
 
-- [ ] 本体の版が、上げる先の PHP に対応している
-- [ ] 各プラグイン・テーマの `Requires PHP` / `Tested up to` / 最終更新日を確かめた
-- [ ] 更新が止まったプラグイン・配布が終わったプラグインを洗い出し、**代わりを決めた**
-- [ ] 独自に手を入れた箇所（`functions.php`、子テーマ、自作プラグイン）を、このスクリプトで確かめた
-- [ ] 独自改修・更新停止・対応不明のものは、**判断なしに更新・削除しない**。危険と対応案を先に並べる
+- [ ] The core version supports the target PHP version
+- [ ] Checked `Requires PHP` / `Tested up to` / last update of every plugin and theme
+- [ ] Listed plugins that are no longer updated or distributed, and **chose replacements**
+- [ ] Ran this script on custom code (`functions.php`, child themes, in-house plugins)
+- [ ] **Did not update or delete** custom, abandoned or unknown components without a decision. List the risk and the options first
 
-### 5. バックアップ・検証・戻し方（作業の前に）
+### 5. Backup, staging and rollback (before any change)
 
-- [ ] ファイルを、作業の直前に取得した（サーバーの自動バックアップだけに頼らない）
-- [ ] データベースを、サイトごとに取得した（`mysqldump --single-transaction` など）
-- [ ] **取得したバックアップから、実際に戻せることを確かめた**
-- [ ] 検証用の環境（サブドメインなど）に複製し、先に新しい版で動かした。検証環境は検索に載らないようにした（noindex・Basic 認証）
-- [ ] 戻し方を 3 段階で書いた。どの段階で戻すかの基準も決めた
-  1. PHP の版を戻す（数分）
-  2. プラグイン・テーマを前の版へ戻す
-  3. ファイルとデータベースを戻す
-- [ ] 本番は、影響の小さいサイトから 1 つずつ進める（一斉に上げない）
+- [ ] Copied the files right before the work (not relying only on the host's automatic backups)
+- [ ] Dumped each site's database (`mysqldump --single-transaction` or similar)
+- [ ] **Restored from that backup once, to prove it works**
+- [ ] Cloned the site to staging (a subdomain, for example) and ran it on the new version first. Kept staging out of search engines (noindex, Basic auth)
+- [ ] Wrote a three-step rollback, with the point at which each step is used
+  1. Switch the PHP version back (minutes)
+  2. Roll plugins and themes back to the previous version
+  3. Restore files and the database
+- [ ] Upgrading production one site at a time, lowest impact first (never all at once)
 
-### 6. 上げた後の確認
+### 6. After the upgrade
 
-- [ ] トップ・主要な導線の表示
-- [ ] 問い合わせフォームの送信と、**メールが届くこと**
-- [ ] 管理画面のログインと編集、画像のアップロード
-- [ ] cron の実行
-- [ ] PHP のエラーログ（WordPress なら `WP_DEBUG_LOG`）に、新しいエラーが出ていない
-- [ ] 表示速度を、上げる前と比べた
+- [ ] The home page and main paths render
+- [ ] The contact form submits and **the mail arrives**
+- [ ] Admin login, editing and image upload
+- [ ] cron runs
+- [ ] No new errors in the PHP error log (`WP_DEBUG_LOG` on WordPress)
+- [ ] Page speed compared with before the upgrade
 
-## 困ったら
+## Need a hand?
 
-このチェックリストは、実際の更新作業で使っている手順を一般化したものです。自分で進めるのが難しい場合は、[WordPress・PHP の更新（1 サイト定額・IT.Skill）](https://it-skill.jp/php-update/?utm_source=github&utm_medium=referral&utm_campaign=php8-upgrade-check) で代わりに行います。
+This checklist is a generalised version of the steps I use for real upgrade work. If you would rather have someone else do it, write to [IT.Skill](https://it-skill.jp/en/?utm_source=github&utm_medium=referral&utm_campaign=php8-upgrade-check), a solo developer in Japan.
 
-## ライセンス
+## License
 
 MIT License
