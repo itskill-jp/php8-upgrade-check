@@ -44,6 +44,23 @@ Total 3 (1 may stop PHP 8.0)
 
 Every hit means "check this". Code wrapped in `function_exists()` or a PHP version check keeps working as it is. Whether it really breaks is confirmed by running the site on the new version in staging.
 
+## Is the security fix installed? (`php-patch-check.sh`)
+
+Finds every PHP on the server and tells you, per binary, whether **the security fix is installed**. It targets the release php.net announced for 21 October 2026, 14:00 UTC (two critical vulnerabilities).
+
+```bash
+bash php-patch-check.sh
+bash php-patch-check.sh --fixed 8.5.12,8.4.27,8.3.36,8.2.35   # give the fixed versions yourself (after php.net publishes them)
+```
+
+- **Read-only.** It only runs `-v` on each PHP it finds; site code is never executed and nothing goes online
+- Looks for: `php` (CLI), PHP-FPM, PHP-CGI, and cPanel / Plesk / Remi / LiteSpeed builds
+- **Distro packages** (Ubuntu, Debian, RHEL ...) often keep the old upstream number after a fix (e.g. `8.3.6`). For those it checks whether **the installed package's changelog lists the CVE IDs**
+- Warns when **PHP-FPM or Apache (mod_php) is still running from before PHP was updated**. Updating the files is not enough; the running PHP stays old until you restart
+- Exit codes: `0` patched, `1` action needed, `3` cannot decide yet (e.g. before the release)
+
+The fixed versions are added to the script once php.net publishes them. If your copy is older than that, pass them with `--fixed`.
+
 ## Checklist
 
 ### 1. Environment
