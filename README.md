@@ -50,7 +50,7 @@ Finds every PHP on the server and tells you, per binary, whether **the security 
 
 ```bash
 bash php-patch-check.sh
-bash php-patch-check.sh --fixed 8.5.12,8.4.27,8.3.36,8.2.35   # give the fixed versions yourself (after php.net publishes them)
+bash php-patch-check.sh --fixed 8.5.12,8.4.27,8.3.36,8.2.35   # give the fixed versions yourself (if a newer advisory supersedes the built-in list)
 ```
 
 - **Read-only.** It only runs `-v` on each PHP it finds; site code is never executed and nothing goes online
@@ -59,7 +59,7 @@ bash php-patch-check.sh --fixed 8.5.12,8.4.27,8.3.36,8.2.35   # give the fixed v
 - Warns when **PHP-FPM or Apache (mod_php) is still running from before PHP was updated**. Updating the files is not enough; the running PHP stays old until you restart
 - Exit codes: `0` patched, `1` action needed, `3` cannot decide yet (e.g. before the release)
 
-The fixed versions are added to the script once php.net publishes them. If your copy is older than that, pass them with `--fixed`.
+The fixed versions (8.5.12, 8.4.27, 8.3.36, 8.2.35) are built in, taken from php.net's advisory of 2026-10-21.
 
 ## Checklist
 

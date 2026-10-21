@@ -30,7 +30,7 @@ p8131=$(fake php8131 "PHP 8.1.31 (cli)")
 p8360=$(fake php836u "PHP 8.3.6 (cli) (built: Jul 14 2026)")
 p860=$(fake php860 "PHP 8.6.0 (cli)")
 
-check "修正版が未公開なら判定待ち" 3 "判定待ち" -- env PPC_SEARCH="$p8335" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh'
+check "修正版の一覧が空なら判定待ち（--fixed ""）" 3 "判定待ち" -- env PPC_SEARCH="$p8335" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh --fixed ""'
 check "修正版未満は要対応" 1 "8.3.36 未満" -- env PPC_SEARCH="$p8335" bash -c "LANG=ja_JP.UTF-8 bash php-patch-check.sh --fixed $FIXED"
 check "修正版ちょうどは修正済み" 0 "\[修正済み\]" -- env PPC_SEARCH="$p8336" bash -c "LANG=ja_JP.UTF-8 bash php-patch-check.sh --fixed $FIXED"
 check "修正版より新しいのも修正済み" 0 "\[修正済み\]" -- env PPC_SEARCH="$p8340" bash -c "LANG=ja_JP.UTF-8 bash php-patch-check.sh --fixed=$FIXED"
@@ -50,6 +50,8 @@ check "変更履歴に CVE が無いパッケージは要対応（ディスト�
 check "パッケージの修正は修正版の公開前でも分かる" 0 "\[修正済み\]" -- env PPC_SEARCH="$p8360" PPC_PKG="deb php8.3-cli 8.3.6-0ubuntu0.24.04.6" PPC_CHANGELOG="$tmp/changelog.fixed" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh'
 
 # 入力と言語
+check "修正版の番号は組み込み（--fixed なしでも判定する）" 1 "8.3.36 未満" -- env PPC_SEARCH="$p8335" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh'
+check "組み込みでも修正版ちょうどは修正済み" 0 "\[修正済み\]" -- env PPC_SEARCH="$p8336" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh'
 check "--fixed の形が違えば止める" 2 "形が正しくありません" -- env PPC_SEARCH="$p8335" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh --fixed 8.3'
 check "PHP が無ければ判定待ち" 3 "見つかりませんでした" -- env PPC_SEARCH="$tmp/none" bash -c 'LANG=ja_JP.UTF-8 bash php-patch-check.sh'
 check "LANG=en なら英語" 1 "action needed" -- env PPC_SEARCH="$p8335" bash -c "LANG=en_US.UTF-8 bash php-patch-check.sh --fixed $FIXED"

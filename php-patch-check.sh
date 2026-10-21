@@ -21,12 +21,12 @@
 set -u
 
 # ---- Advisory ---------------------------------------------------------------
-# PHP security release announced on php.net for 2026-10-21 14:00 UTC (two critical issues, CVSS v4.0 9.2).
+# PHP security release on php.net, 2026-10-21 (two critical RCE issues, CVSS v4.0 9.2).
 ADVISORY_LABEL="PHP security release 2026-10-21"
-# CVE IDs used to search distro changelogs (as reported; php.net's notice did not list them).
+# CVE IDs from php.net's advisory, used to search distro changelogs.
 ADVISORY_CVES="CVE-2026-109618 CVE-2026-109619"
-# Fixed version per branch, from php.net. Empty until the release is published.
-FIXED_VERSIONS=""
+# Fixed version per branch, from php.net's advisory (2026-10-21). --fixed overrides.
+FIXED_VERSIONS="8.5.12 8.4.27 8.3.36 8.2.35"
 # Oldest branch that receives official fixes. Older branches are end-of-life upstream.
 OLDEST_SUPPORTED="8.2"
 # -----------------------------------------------------------------------------
@@ -185,7 +185,12 @@ while IFS= read -r bin; do
       deb\ *|rpm\ *)
         say_status action "$(t "$fixed 未満で、パッケージの変更履歴にも修正の記録がありません。ディストリビューションの更新を当ててください（版の番号は変わらないことがあります）" "older than $fixed and the package changelog has no record of the fix. Apply your distro's update (the version number may not change)")" ;;
       *)
-        say_status action "$(t "$fixed 未満です。$fixed 以上へ更新してください" "older than $fixed; update to $fixed or later")" ;;
+        case "$bin" in
+          /opt/remi/*)
+            say_status action "$(t "$fixed 未満です。Remi のリポジトリは公開当日の更新がありません（php.net の告知）。ディストリビューションの標準パッケージかソースから $fixed 以上へ" "older than $fixed. The Remi repo has no update on release day (per php.net); move to your distro's packages or build $fixed or later from source")" ;;
+          *)
+            say_status action "$(t "$fixed 未満です。$fixed 以上へ更新してください" "older than $fixed; update to $fixed or later")" ;;
+        esac ;;
     esac
   fi
 done < <(candidates)
